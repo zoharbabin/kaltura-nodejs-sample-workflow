@@ -5,7 +5,7 @@ To get started with the Kaltura API, review the docs and tools at: https://devel
 # Setting up
 
 * npm install the following libs: [kaltura](https://developer.kaltura.com/api-docs/Client_Libraries/), compression, path, express, jsrender 
-* Edit app.js and replace REPLACE_WITH_KALTURA_ACCOUNT_ID and REPLACE_WITH_KALTURA_API_ADMIN_SECRET with real values from your KMC.
+* Edit app.js and replace `REPLACE_WITH_KALTURA_ACCOUNT_ID` and `REPLACE_WITH_KALTURA_API_ADMIN_SECRET` with real values from your KMC.
 
 # How you can help (guidelines for contributors) 
 Thank you for helping Kaltura grow! If you'd like to contribute please follow these steps:
