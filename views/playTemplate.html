@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Playback Page</title>
+	<script src="https://cdnapisec.kaltura.com/p/2315701/sp/231570100/embedIframeJs/uiconf_id/40312731/partner_id/2315701"></script> 
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+	<script>
+		var d = new Date();
+		var cacheSt = (Math.round((new Date()).getTime() / 1000) + 60*10); //10 min from now in unixtime
+		var kdp = null;
+		var thrownCuePoints = [];
+		var playerID = null;
+		function cuePointReached (cuePoint) {
+			thrownCuePoints.forEach(function(item,index){
+				if (item === cuepoint) return true;
+			});
+			return false;
+		}
+		function checkEntryStatus(){
+			$('#errormsg').html('<h2 style="color: #9F6000; background-color: #FEEFB3;">Media is being processed, please wait.</h2>');
+			$.post(
+				//See: https://developer.kaltura.com/api-docs/Enrich_and_Organize_Metadata/media/media_get
+				"https://cdnapisec.kaltura.com/api_v3/service/media/action/get/format/1/ks/{{:sessionkey}}/entryId/{{:entryid}}", 
+				function(entryObj) {
+					//check the entry status: https://developer.kaltura.com/api-docs/General_Objects/Enums/KalturaEntryStatus
+					if (entryObj.status == 2) { //KalturaEntryStatus::READY
+						$('#errormsg').empty();
+						//entry is ready to be played, refresh the player with the same entry id:
+						kdp.sendNotification("changeMedia", { "entryId" : "{{:entryid}}" });
+					} else {
+						//continue polling for status:
+						setTimeout(checkEntryStatus, 2000);
+					}
+				}
+			);
+		}
+	</script>
+</head>
+<body>
+
+	<div id="kaltura_player" style="width: 560px; height: 395px;"></div> 
+	<div id="errormsg"></div>
+
+	<script> 
+	kWidget.embed({ 
+		"targetId": "kaltura_player", 
+		"wid": "_2315701", 
+		"uiconf_id": 40312731, 
+		"flashvars": { 
+			"streamerType": "auto", 
+			'getCuePointsData' : true,
+			'externalInterfaceDisabled' : false
+		}, 
+		"entry_id": "{{:entryid}}",
+		"cacheSt": cacheSt, //remove this param in production!
+		'ks': '{{:sessionkey}}',
+		'readyCallback':function(playerId) {
+			playerID = playerId;
+	        kdp = document.getElementById(playerID);
+	        kdp.kBind('KalturaSupport_CuePointsReady', function( ){
+	        	console.log('cuepoints plugin loaded cuepoints');
+	        });
+	        kdp.kBind('KalturaSupport_CuePointReached', function( qPoints ){
+	        	console.log('Got a cuepoint: ');
+	        	if (cuePointReached(qPoints.cuePoint)) return;
+	        	thrownCuePoints.push(qPoints.cuePoint);
+	        	if (qPoints.cuePoint.forceStop)
+	        		kdp.sendNotification('doPause');
+	        	eval(qPoints.cuePoint.partnerData);
+	        	kdp.sendNotification('doPlay');
+			});
+			kdp.kBind('playerError', function (errorEvent) {
+				if (errorEvent.message.includes("Entry in process")) {
+					checkEntryStatus();
+				}
+			});
+	        /*
+	        var events = ['layoutBuildDone', 'playerReady',  'mediaLoaded', 'mediaError', 'playerStateChange', 'firstPlay', 'playerPlayed', 'playerPaused', 'preSeek', 'seek', 'seeked', 'playerUpdatePlayhead', 'openFullScreen', 'closeFullScreen', 'volumeChanged', 'mute', 'unmute', 'bufferChange', 'playerPlayEnd', 'onChangeMedia', 'onChangeMediaDone'];
+	        for ( var i=0; i < events.length; i++ ){
+	            (function(i) {
+	                kdp.kBind( events[i], function(event){
+	                    console.log('Kaltura player event triggered: ' + events[i] + ', event data: ' + JSON.stringify(event));
+	                });
+	            })(i);
+	    	}
+	    	*/
+    	}
+	}); 
+	</script>
+</body>
+</html>
